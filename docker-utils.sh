@@ -18,9 +18,12 @@ function docker-build () {
   local repository=
   local dockerfile=Dockerfile.prod
   local latest=true
+  local verbose=false
 
   while [ "$1" != "" ]; do
     case $1 in
+      -v | --verbose )        verbose=true
+                              ;;
       -p | --push )           should_push=true
                               ;;
       --no-latest )           latest=false
@@ -35,35 +38,30 @@ function docker-build () {
     shift
   done
 
-  # echo $should_push
-  # echo $repository
-  # echo $dockerfile
-  # echo $latest
+  if [ $verbose == true ]; then
+    echo "should_push: $should_push"
+    echo "repository:  $repository"
+    echo "dockerfile:  $dockerfile"
+    echo "latest:      $latest"
+  fi
 
   [[ -z "$repository" ]] && echo 'Please provide a --repository' && return
+  [ ! -f $dockerfile ] && echo 'Coud not find '$dockerfile && return
 
   eval $(docker-machine env --unset)
-  echo ============== BUILD ==============
-  docker build -f $dockerfile .
-  echo =============== TAG ===============
-  image_tag=`docker images -q 2>&1 | head -n1` # "TODO: parse 'Successfully built 33342a7f50e8'"
+  build_output=$(docker build -f $dockerfile .)
+  image_tag=$(tail -n 1 <<< $build_output | sed s/Successfully\ built\ //)
   docker tag $image_tag $repository:$image_tag
   $latest && docker tag $image_tag $repository':latest'
 
-  if [ $should_push == true ]
-  then
-  echo ============== PUSH ===============
-
-    if gcloud docker -- push $repository
-    then
+  if [ $should_push == true ]; then
+    if [ gcloud docker -- push $repository ]; then
       local_images=$(docker images -q $repository)
       old_images=$(printf "$local_images" | tail -n +4) # latest, t1, t2
-      if [ $(wc -w <<< "$old_images") -gt 0 ]
-      then
+      $verbose && echo "Hosekeeping! Will delete the following images: $old_images"
+      if [ $(wc -w <<< "$old_images") -gt 0 ]; then
         docker rmi $(for tag in `echo $old_images`; do echo $repository':'$tag; done)
       fi
     fi
-
   fi
 }
-
