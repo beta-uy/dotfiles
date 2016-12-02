@@ -65,3 +65,11 @@ function docker-build () {
     fi
   fi
 }
+
+compose-alias(){
+    a='docker-compose -f docker-compose.yml -f docker-compose.'
+    b='.yml'
+    alias docker-compose=$a$1$b
+    alias docker-compose
+}
+
