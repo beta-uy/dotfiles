@@ -66,10 +66,28 @@ function docker-build () {
   fi
 }
 
-compose-alias(){
+function compose-alias () {
     a='docker-compose -f docker-compose.yml -f docker-compose.'
     b='.yml'
     alias docker-compose=$a$1$b
     alias docker-compose
 }
 
+function swarm-inspect () {
+  local filename=$(date "+%Y%m%d%H%M%S")_swarm-state.txt
+  
+  while [ "$1" != "" ]; do
+    case $1 in
+      -f | --filename )     shift
+                            filename=$1
+                            ;;
+    esac
+    shift
+  done
+
+  for name in `docker service ls -q`; do
+    docker service inspect $name >> $filename
+  done
+
+  cat $filename
+}
