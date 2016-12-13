@@ -1,2 +1,3 @@
-source ./.docker-utils
+#!/bin/bash
+source $(dirname $0)/.docker-utils
 
