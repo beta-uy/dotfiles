@@ -55,7 +55,7 @@ function docker-build () {
   $latest && docker tag $image_tag $repository':latest'
 
   if [ $should_push == true ]; then
-    if [ gcloud docker -- push $repository ]; then
+    if gcloud docker -- push $repository; then
       local_images=$(docker images -q $repository)
       old_images=$(printf "$local_images" | tail -n +4) # latest, t1, t2
       $verbose && echo "Hosekeeping! Will delete the following images: $old_images"
