@@ -85,9 +85,17 @@ function swarm-inspect () {
     shift
   done
 
+  figlet services >> $filename
+
   for name in `docker service ls -q`; do
     docker service inspect $name >> $filename
   done
+
+  figlet networks >> $filename
+
+  for network in `docker network ls -q`; do
+    docker network inspect $network >> $filename
+  done  
 
   cat $filename
 }
