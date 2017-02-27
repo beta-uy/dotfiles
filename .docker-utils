@@ -19,6 +19,7 @@ function docker-build () {
   local dockerfile=Dockerfile.prod
   local latest=true
   local verbose=false
+  local context_path='.'
 
   while [ "$1" != "" ]; do
     case $1 in
@@ -31,6 +32,9 @@ function docker-build () {
       -r | --repository )     shift
                               repository=$1
                               ;;
+      -c | --context-path )   shift
+	                      context_path=$1
+			      ;;
       -f | --dockerfile )     shift
                               dockerfile=$1
                               ;;
@@ -39,17 +43,18 @@ function docker-build () {
   done
 
   if [ $verbose == true ]; then
-    echo "should_push: $should_push"
-    echo "repository:  $repository"
-    echo "dockerfile:  $dockerfile"
-    echo "latest:      $latest"
+    echo "should_push:  $should_push"
+    echo "repository:   $repository"
+    echo "dockerfile:   $dockerfile"
+    echo "latest:       $latest"
+    echo "context_path: $context_path"
   fi
 
   [[ -z "$repository" ]] && echo 'Please provide a --repository' && return
   [ ! -f $dockerfile ] && echo 'Coud not find '$dockerfile && return
 
   eval $(docker-machine env --unset)
-  build_output=$(docker build -f $dockerfile .)
+  build_output=$(docker build -f $dockerfile $context_path)
   image_tag=$(tail -n 1 <<< $build_output | sed s/Successfully\ built\ //)
   docker tag $image_tag $repository:$image_tag
   $latest && docker tag $image_tag $repository':latest'
