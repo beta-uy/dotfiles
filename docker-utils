@@ -54,7 +54,7 @@ function docker-build () {
   [ ! -f $dockerfile ] && echo 'Coud not find '$dockerfile && return
 
   eval $(docker-machine env --unset)
-  build_output=$(docker build -f $dockerfile $context_path | tee /dev/tty)
+  build_output=$(docker build -f $dockerfile $@ $context_path | tee /dev/tty)
   image_tag=$(tail -n 1 <<< $build_output | sed s/Successfully\ built\ //)
   docker tag $image_tag $repository:$image_tag
   $latest && docker tag $image_tag $repository':latest'
