@@ -1,0 +1,9 @@
+function randport () {
+  seq $(echo '1 + 2^14 + 2^15' | bc) $(echo '2^16' | bc) | gshuf -n 1
+}
+
+function chpwd () {
+  local filename=$(pwd)/.chpwd
+  [ -e "$filename" ] && source $filename
+}
+
