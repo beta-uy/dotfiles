@@ -20,6 +20,7 @@ function docker-build () {
   local latest=true
   local verbose=false
   local context_path='.'
+  local build_args=''
 
   while [ "$1" != "" ]; do
     case $1 in
@@ -33,33 +34,40 @@ function docker-build () {
                               repository=$1
                               ;;
       -c | --context-path )   shift
-	                      context_path=$1
-			      ;;
+	                            context_path=$1
+			                        ;;
       -f | --dockerfile )     shift
                               dockerfile=$1
+                              ;;
+      --build-args-file )     shift
+                              build_args=$(read_build_args_file $1)
                               ;;
     esac
     shift
   done
-
-  if [ $verbose == true ]; then
+  
+  local build_command="docker build -f $dockerfile $build_args $@ '$context_path'"
+  
+  if [[ $verbose == true ]]; then
     echo "should_push:  $should_push"
     echo "repository:   $repository"
     echo "dockerfile:   $dockerfile"
     echo "latest:       $latest"
     echo "context_path: $context_path"
+    echo "build_command: $build_command"
   fi
 
   [[ -z "$repository" ]] && echo 'Please provide a --repository' && return
   [ ! -f $dockerfile ] && echo 'Coud not find '$dockerfile && return
 
   eval $(docker-machine env --unset)
-  build_output=$(docker build -f $dockerfile $@ $context_path | tee /dev/tty)
+  
+  build_output=$(eval $build_command | tee /dev/tty)
   image_tag=$(tail -n 1 <<< $build_output | sed s/Successfully\ built\ //)
   docker tag $image_tag $repository:$image_tag
   $latest && docker tag $image_tag $repository':latest'
 
-  if [ $should_push == true ]; then
+  if [[ $should_push == true ]]; then
     if gcloud docker -- push $repository; then
       local_images=$(docker images -q $repository)
       old_images=$(printf "$local_images" | tail -n +4) # latest, t1, t2
@@ -69,6 +77,14 @@ function docker-build () {
       fi
     fi
   fi
+}
+
+function read_build_args_file () {
+  local build_args
+  for env_pair in `cat $1`; do;
+    build_args=$build_args" --build-arg "$env_pair
+  done
+  echo $build_args
 }
 
 function compose-alias () {
