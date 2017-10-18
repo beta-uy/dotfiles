@@ -11,23 +11,24 @@ function chpwd () {
   [ -e "$filename" ] && source $filename
 }
 
-function to_epoch () {
+function ddmmyyHHMMSS_to_epoch () {
   date -jf '%d/%m/%y %H:%M:%S' $1 +%s
+}
+
+function epoch_to_ISO () {
+  gdate -d @$1 -Iseconds
+}
+
+function ddmmyyHHMMSS_to_ISO () {
+  epoch_to_ISO $(ddmmyyHHMMSS_to_epoch $1)
 }
 
 function awslogs2 () {
 	aws logs filter-log-events \
 	  --log-group-name $1 \
-	  --start-time $(to_epoch $2)000 \
-	  --end-time $(to_epoch $3)000 \
+	  --start-time "$(epoch_to_ISO $(ddmmyyHHMMSS_to_epoch $2))" \
+	  --end-time "$(epoch_to_ISO $(ddmmyyHHMMSS_to_epoch $3))" \
 	  --no-paginate \
 	| jq '.events[] | .logStreamName + " " + .message' -r
 }
-# aws logs filter-log-events \
-#   --log-group-name docker-1704-lg \
-#   --start-time $(to_epoch '29/08/17 10:11:00')000 \
-#   --end-time $(to_epoch '29/08/17 10:16:00')000 \
-#   --no-paginate \
-# | jq '.events[] | .logStreamName + " " + .message' -r \
-# | grep betarouter_proxy
 
