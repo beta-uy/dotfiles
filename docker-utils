@@ -18,6 +18,7 @@ function docker-build () {
   local repository=
   local dockerfile=Dockerfile.prod
   local latest=true
+  local additional_tags=''
   local verbose=false
   local context_path='.'
   local build_args=''
@@ -29,9 +30,12 @@ function docker-build () {
       -p | --push )           should_push=true
                               ;;
       --no-latest )           latest=false
-                              ;;                              
+                              ;;
       -r | --repository )     shift
                               repository=$1
+                              ;;
+      -t | --tag )            shift
+                              additional_tags=$1\ $additional_tags
                               ;;
       -c | --context-path )   shift
 	                            context_path=$1
@@ -45,27 +49,30 @@ function docker-build () {
     esac
     shift
   done
-  
-  local build_command="docker build -f $dockerfile $build_args $@ '$context_path'"
-  
+
+  local build_command="docker build -q -f $dockerfile $build_args $@ '$context_path'"
+
   if [[ $verbose == true ]]; then
-    echo "should_push:  $should_push"
-    echo "repository:   $repository"
-    echo "dockerfile:   $dockerfile"
-    echo "latest:       $latest"
-    echo "context_path: $context_path"
-    echo "build_command: $build_command"
+    echo "should_push:     $should_push"
+    echo "repository:      $repository"
+    echo "dockerfile:      $dockerfile"
+    echo "latest:          $latest"
+    echo "additional_tags: $additional_tags"
+    echo "build_command:   $build_command"
+    echo "context_path:    $context_path"
   fi
 
   [[ -z "$repository" ]] && echo 'Please provide a --repository' && return
   [ ! -f $dockerfile ] && echo 'Coud not find '$dockerfile && return
 
   eval $(docker-machine env --unset)
-  
-  build_output=$(eval $build_command | tee /dev/tty)
-  image_tag=$(tail -n 1 <<< $build_output | sed s/Successfully\ built\ //)
+
+  # build_output=$(eval $build_command | tee /dev/tty)
+  # image_tag=$(tail -n 1 <<< $build_output | sed s/Successfully\ built\ //)
+  image_tag=$(eval $build_command | ruby -ne 'puts $_[7..18]')
   docker tag $image_tag $repository:$image_tag
   $latest && docker tag $image_tag $repository':latest'
+  [[ ! -z "$additional_tags" ]] && for tag in $(echo $additional_tags); do docker tag $image_tag $repository:$tag; done
 
   if [[ $should_push == true ]]; then
     if gcloud docker -- push $repository; then
@@ -99,7 +106,7 @@ function compose-alias () {
 
 function swarm-inspect () {
   local filename=$(date "+%Y%m%d%H%M%S")_swarm-state.txt
-  
+
   while [ "$1" != "" ]; do
     case $1 in
       -f | --filename )     shift
@@ -119,7 +126,7 @@ function swarm-inspect () {
 
   for network in `docker network ls -q`; do
     docker network inspect $network >> $filename
-  done  
+  done
 
   cat $filename
 }
