@@ -50,7 +50,7 @@ function docker-build () {
     shift
   done
 
-  local build_command="docker build -q -f $dockerfile $build_args $@ '$context_path'"
+  local build_command="docker build -f $dockerfile $build_args $@ '$context_path'"
 
   if [[ $verbose == true ]]; then
     echo "should_push:     $should_push"
@@ -67,9 +67,9 @@ function docker-build () {
 
   eval $(docker-machine env --unset)
 
-  # build_output=$(eval $build_command | tee /dev/tty)
-  # image_tag=$(tail -n 1 <<< $build_output | sed s/Successfully\ built\ //)
-  image_tag=$(eval $build_command | ruby -ne 'puts $_[7..18]')
+  build_output=$(eval $build_command | tee /dev/tty)
+  image_tag=$(tail -n 1 <<< $build_output | sed s/Successfully\ built\ //)
+  # image_tag=$(eval $build_command | tee /dev/tty | ruby -ne 'puts $_[-1..-12]')
   docker tag $image_tag $repository:$image_tag
   $latest && docker tag $image_tag $repository':latest'
   [[ ! -z "$additional_tags" ]] && for tag in $(echo $additional_tags); do docker tag $image_tag $repository:$tag; done
