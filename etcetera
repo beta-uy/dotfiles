@@ -1,3 +1,7 @@
+function aws-public-read-permissions () {
+  echo '--grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers'
+}
+
 function randport () {
   seq $(echo '1 + 2^14 + 2^15' | bc) $(echo '2^16' | bc) | gshuf -n 1
 }
@@ -32,3 +36,24 @@ function awslogs2 () {
 	| jq '.events[] | .logStreamName + " " + .message' -r
 }
 
+function redis-url() {
+  # Get the first argument as the URL variable
+  url=$1
+  # Parse and generate the command: redis-cli -h [hostname] -p [port] -a [password]
+  cmd=`echo $url | sed 's_redis://\(.*\):\(.*\)@\(.*\):\(.*\)_redis-cli -h \3 -p \4 -a \2_'`
+  # Run the command
+  $cmd
+}
+
+function wrk-post () {
+  local url=$1
+  shift
+  local tmpfile=$(mktemp)
+  printf '
+    wrk.method = "POST"
+    wrk.body   = "%s"
+    wrk.headers["Content-Type"] = "application/json"
+  ' "$(printf $1 | sed 's/\"/\\\"/g')" >$tmpfile
+  shift
+  wrk $@ -s $tmpfile $url
+}
