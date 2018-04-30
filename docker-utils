@@ -38,13 +38,16 @@ function docker-build () {
                               additional_tags=$1\ $additional_tags
                               ;;
       -c | --context-path )   shift
-	                            context_path=$1
-			                        ;;
+	                      context_path=$1
+			      ;;
       -f | --dockerfile )     shift
                               dockerfile=$1
                               ;;
       --build-args-file )     shift
                               build_args=$(read_build_args_file $1)
+                              ;;
+      -- )                    shift
+                              break
                               ;;
     esac
     shift
